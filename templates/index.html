@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <title>AI Spam Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="shield">🛡️</span>
+        <div>
+          <h1>Spam <span class="accent">Detector</span></h1>
+          <p class="tagline">AI-Powered Message Security</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="detect">🎯 Detect</button>
+      <button class="tab" data-tab="inspect">🔬 Inspect</button>
+    </nav>
+
+    <!-- ============================== -->
+    <!-- TAB: DETECT -->
+    <!-- ============================== -->
+    <main class="tab-content active" id="detect">
+
+      <!-- Presets -->
+      <div class="presets-scroll" id="presetsScroll"></div>
+
+      <!-- Input -->
+      <div class="card">
+        <textarea id="msgInput" rows="4" placeholder="Paste any message here — SMS, Email, WhatsApp, Notification..."></textarea>
+        <div class="input-meta">
+          <span id="inputStats">0 chars</span>
+          <div class="input-actions">
+            <button class="btn-ghost" id="btnClear">Clear</button>
+            <button class="btn-primary" id="btnScan">
+              <span id="btnScanText">Scan Message</span>
+              <span class="spin hidden" id="spinner"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results (hidden until first scan) -->
+      <div id="results" style="display:none;">
+
+        <!-- Verdict Card -->
+        <div class="verdict-card" id="verdictCard">
+          <div class="verdict-row">
+            <div class="verdict-badge" id="verdictBadge">[SPAM]</div>
+            <div class="verdict-info">
+              <span class="risk-tag" id="riskTag">CRITICAL</span>
+              <span class="conf-text">Confidence: <strong id="confVal">99%</strong></span>
+            </div>
+          </div>
+          <div class="prob-bar-wrapper">
+            <div class="prob-labels">
+              <span>Safe <strong id="pHam">1%</strong></span>
+              <span>Spam <strong id="pSpam">99%</strong></span>
+            </div>
+            <div class="prob-track">
+              <div class="prob-fill-ham" id="barHam" style="width:1%"></div>
+              <div class="prob-fill-spam" id="barSpam" style="width:99%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Headline -->
+        <div class="card headline-card" id="headline"></div>
+
+        <!-- Reason Cards -->
+        <div id="reasonsList"></div>
+
+        <!-- Highlighted Text -->
+        <div class="card">
+          <div class="section-label">📍 Flagged Triggers</div>
+          <div class="highlight-box" id="highlightBox"></div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="card rec-card" id="recCard"></div>
+      </div>
+    </main>
+
+    <!-- ============================== -->
+    <!-- TAB: INSPECT (5-Layer View) -->
+    <!-- ============================== -->
+    <main class="tab-content" id="inspect">
+      <p class="inspect-hint">Scan a message first, then inspect how it flows through each AI layer.</p>
+
+      <div class="layer-stack" id="layerStack">
+        <!-- Layer 1 -->
+        <div class="layer-card">
+          <div class="layer-head"><span class="lnum">1</span> Input Layer</div>
+          <div class="layer-body">
+            <div class="lfield"><label>Raw:</label><div class="mono" id="iL1Raw">—</div></div>
+            <div class="lfield"><label>Cleaned:</label><div class="mono" id="iL1Clean">—</div></div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+
+        <!-- Layer 2 -->
+        <div class="layer-card">
+          <div class="layer-head"><span class="lnum">2</span> Tokenization & Embedding</div>
+          <div class="layer-body">
+            <div class="lfield"><label>Tokens (<span id="iL2Cnt">0</span>):</label><div class="token-cloud" id="iL2Tokens"></div></div>
+            <div class="lfield"><label>64D Vector:</label><div class="vec-grid" id="iL2Vec"></div></div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+
+        <!-- Layer 3 -->
+        <div class="layer-card">
+          <div class="layer-head"><span class="lnum">3</span> AI Engine</div>
+          <div class="layer-body">
+            <div class="lfield"><label>Architecture:</label><div class="mono" id="iL3Arch">—</div></div>
+            <div class="lfield"><label>Raw Output:</label><div class="mono" id="iL3Prob">—</div></div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+
+        <!-- Layer 4 -->
+        <div class="layer-card">
+          <div class="layer-head"><span class="lnum">4</span> Decision Engine</div>
+          <div class="layer-body">
+            <div class="intent-bars" id="iL4Bars"></div>
+            <div class="lfield"><label>Calibrated:</label><div class="mono" id="iL4Cal">—</div></div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+
+        <!-- Layer 5 -->
+        <div class="layer-card">
+          <div class="layer-head"><span class="lnum">5</span> Output Layer</div>
+          <div class="layer-body">
+            <div class="mono" id="iL5Out">—</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
