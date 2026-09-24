@@ -1,0 +1,10 @@
+# Local virtual environment (do not upload to GitHub)
+.python_env/
+__pycache__/
+*.pyc
+
+# Local scripts
+*.log
+install_portable_python.ps1
+setup_env.ps1
+run_app.bat
