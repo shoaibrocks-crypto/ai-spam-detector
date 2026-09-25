@@ -31,6 +31,5 @@ android {
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // 100% Pure Android & Kotlin runtime - zero external Maven packages to download!
 }
