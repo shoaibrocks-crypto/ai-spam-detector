@@ -1,12 +1,12 @@
 package com.antigravity.aispamdetector
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.core.app.NotificationCompat
 
 object NotificationHelper {
     private const val CHANNEL_SPAM_ID = "ai_spam_detector_alerts"
@@ -16,7 +16,6 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // High Priority Spam Alert Channel (Heads-Up Alert + Vibration)
             val spamChannel = NotificationChannel(
                 CHANNEL_SPAM_ID,
                 "AI Spam & Phishing Alerts",
@@ -27,7 +26,6 @@ object NotificationHelper {
                 enableLights(true)
             }
 
-            // Normal Notification Channel
             val safeChannel = NotificationChannel(
                 CHANNEL_SAFE_ID,
                 "Safe Message Verifications",
@@ -52,21 +50,24 @@ object NotificationHelper {
             putExtra("EXTRA_HEADLINE", result.headline)
         }
 
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            System.currentTimeMillis().toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        } else {
+            PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_SPAM_ID)
+        val bigText = "🚨 Risk Level: ${result.riskLevel} (${result.confidence})\n\n${result.headline}\n\nSecurity Advice: ${result.recommendation}\n\nMessage:\n\"${result.rawText}\""
+
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(context, CHANNEL_SPAM_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(context)
+        }
             .setSmallIcon(android.R.drawable.stat_sys_warning)
             .setContentTitle("🚨 [SPAM DETECTED] From: $sender")
             .setContentText("${result.headline} (${result.confidence})")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("🚨 Risk Level: ${result.riskLevel} (${result.confidence})\n\n${result.headline}\n\nSecurity Advice: ${result.recommendation}\n\nMessage:\n\"${result.rawText}\""))
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setStyle(Notification.BigTextStyle().bigText(bigText))
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 
@@ -77,11 +78,15 @@ object NotificationHelper {
     fun showSafeNotification(context: Context, sender: String, result: SpamAnalysisResult) {
         initNotificationChannels(context)
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_SAFE_ID)
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(context, CHANNEL_SAFE_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(context)
+        }
             .setSmallIcon(android.R.drawable.stat_sys_upload_done)
             .setContentTitle("🛡️ [VERIFIED SAFE] From: $sender")
             .setContentText("Clean message • ${result.confidence} Ham confidence")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
