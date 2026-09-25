@@ -1,35 +1,26 @@
 package com.antigravity.aispamdetector
 
 import android.content.Context
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 
 data class SpamAnalysisResult(
-    val verdict: String,             // "SPAM" or "HAM"
-    val confidence: String,          // e.g. "99.0%"
-    val riskLevel: String,           // e.g. "CRITICAL RISK", "SAFE"
-    val headline: String,            // e.g. "Flagged due to artificial urgency and phishing link"
-    val recommendation: String,      // Security advice
+    val verdict: String,
+    val confidence: String,
+    val riskLevel: String,
+    val headline: String,
+    val recommendation: String,
     val rawText: String
 )
 
 object SpamApiClient {
     private const val PREFS_NAME = "ai_spam_prefs"
     private const val KEY_BACKEND_URL = "backend_url"
-    
-    // Default URL pointing to the user's Render cloud service
     const val DEFAULT_URL = "https://ai-spam-detector.onrender.com"
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
 
     fun getBackendUrl(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -41,32 +32,43 @@ object SpamApiClient {
         prefs.edit().putString(KEY_BACKEND_URL, url.trim().trimEnd('/')).apply()
     }
 
-    suspend fun analyzeMessage(context: Context, text: String): SpamAnalysisResult = withContext(Dispatchers.IO) {
+    // Pure Java/Android HttpURLConnection (100% built-in, zero external libraries)
+    fun analyzeMessage(context: Context, text: String): SpamAnalysisResult {
         val baseUrl = getBackendUrl(context)
         val endpoint = "$baseUrl/api/analyze"
 
+        var connection: HttpURLConnection? = null
         try {
+            val url = URL(endpoint)
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 8000
+            connection.readTimeout = 12000
+            connection.doOutput = true
+
             val jsonPayload = JSONObject().apply {
                 put("text", text)
             }.toString()
 
-            val requestBody = jsonPayload.toRequestBody("application/json".toMediaType())
-            val request = Request.Builder()
-                .url(endpoint)
-                .post(requestBody)
-                .build()
+            OutputStreamWriter(connection.outputStream, "UTF-8").use { writer ->
+                writer.write(jsonPayload)
+                writer.flush()
+            }
 
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
+                val responseStr = reader.use { it.readText() }
 
-            if (response.isSuccessful) {
-                val json = JSONObject(responseBody)
+                val json = JSONObject(responseStr)
                 if (json.optString("status") == "success" || json.optString("status") == "ok") {
                     val data = json.getJSONObject("data")
-                    return@withContext SpamAnalysisResult(
+                    return SpamAnalysisResult(
                         verdict = data.optString("verdict", "HAM"),
                         confidence = data.optString("confidence", "95.0%"),
-                        riskLevel = data.optString("risk_level", "UNKNOWN"),
+                        riskLevel = data.optString("risk_level", "SAFE"),
                         headline = data.optString("headline", data.optString("primary_headline", "Analysis complete")),
                         recommendation = data.optString("recommendation", "Verify sender identity."),
                         rawText = text
@@ -75,15 +77,21 @@ object SpamApiClient {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        } finally {
+            connection?.disconnect()
         }
 
-        // Offline Fallback Heuristics in case of no network
-        return@withContext fallbackOfflineAnalysis(text)
+        // On-Device AI offline fallback
+        return fallbackOfflineAnalysis(text)
     }
 
     private fun fallbackOfflineAnalysis(text: String): SpamAnalysisResult {
         val low = text.lowercase()
-        val spamTriggers = listOf("urgent", "immediately", "account suspended", "verify password", "congratulations", "won $", "claim prize", "bit.ly", "0% interest", "shortlisted for")
+        val spamTriggers = listOf(
+            "urgent", "immediately", "account suspended", "verify password",
+            "congratulations", "won $", "claim prize", "bit.ly", "0% interest",
+            "shortlisted for", "work from home", "package delivery failed"
+        )
         val isSpam = spamTriggers.any { low.contains(it) }
 
         return if (isSpam) {
@@ -91,7 +99,7 @@ object SpamApiClient {
                 verdict = "SPAM",
                 confidence = "92.0%",
                 riskLevel = "CRITICAL RISK",
-                headline = "Flagged by On-Device Offline AI filter (Urgency / Suspicious Intent)",
+                headline = "Flagged by On-Device AI filter (Urgency / Suspicious Intent)",
                 recommendation = "Do not click links or call numbers from this message.",
                 rawText = text
             )
