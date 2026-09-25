@@ -1,16 +1,18 @@
-# AI Spam Detector (Mobile-First PWA)
+# AI Spam Detector - Dual Platform (PC & Native Mobile App)
 
-A unified, full-stack, explainable AI Spam and Phishing Detection application designed to detect and analyze messages across all devices: **Mobile (SMS, WhatsApp, Notifications), Laptop, and PC (Email, Chat, Social Media)**.
+A complete cybersecurity solution featuring:
+1. **PC / Laptop Experience**: Interactive 5-Layer AI Architecture Web Dashboard and REST API.
+2. **Mobile Experience (Native Android App)**: Real-time background SMS interceptor that auto-detects every incoming message as the default detector on your Android phone.
 
 ---
 
-## 5-Layer AI Architecture
+## Architecture Overview
 
 ```
 +--------------------------------------------------------------------------+
-|                            1. INPUT LAYER                                |
-|    - Multi-Channel Ingestion: SMS, Emails, WhatsApp, OTPs, App Alerts    |
-|    - Normalization, HTML decoding, Canonical URL/Currency mapping        |
+|                     1. INCOMING MESSAGE INGESTION                        |
+|   [ Mobile: Android BroadcastReceiver ]      [ PC: Web Dashboard Input ] |
+|   - Real-time SMS interception               - Emails, WhatsApp, Chat    |
 +------------------------------------+-------------------------------------+
                                      |
                                      v
@@ -27,7 +29,6 @@ A unified, full-stack, explainable AI Spam and Phishing Detection application de
 |    - Deep Neural Network Classifier                                      |
 |    - Input(64) -> Dense(32) -> ReLU -> Dropout(0.2)                     |
 |      -> Dense(16) -> ReLU -> Dense(2) -> Softmax                         |
-|    - Offline, zero-latency inference (<1ms)                              |
 +------------------------------------+-------------------------------------+
                                      |
                                      v
@@ -42,39 +43,57 @@ A unified, full-stack, explainable AI Spam and Phishing Detection application de
                                      v
 +--------------------------------------------------------------------------+
 |                            5. OUTPUT LAYER                               |
-|    - Verdict: [SPAM] or [HAM] with visual confidence gauge               |
-|    - AI Reason Mapping (e.g. "Flagged due to artificial urgency & domain")|
-|    - In-text suspicious phrase highlighting & security recommendation    |
+|   [ Mobile Heads-Up Notification ]          [ PC / Web Reason Cards ]    |
+|   - Red Alert: 🚨 SPAM DETECTED             - Verdict [SPAM] or [HAM]    |
+|   - Green: 🛡️ VERIFIED SAFE                 - In-text span highlighting  |
 +--------------------------------------------------------------------------+
 ```
 
 ---
 
-## What It Detects
+## Directory Structure
 
-- **Phishing & Account Verification**: Fake Chase, Bank of America, PayPal, Apple iCloud, Netflix, Amazon.
-- **SMS & Delivery Scams**: Fake USPS/FedEx tracking, fake redelivery fees, customs charges.
-- **Job & Work-From-Home Scams**: Unsolicited Amazon/WhatsApp hiring, unrealistic daily payouts.
-- **Financial & Crypto Bait**: Fake Elon Musk BTC giveaways, lottery jackpots, tax refund fraud.
-- **Social Media & WhatsApp Hoaxes**: Chain forwarding messages, fake expiration warnings.
-- **Safe Transactional Filtering**: Verified protection for genuine OTPs, bank debit/credit SMS, food delivery (Swiggy/Zomato), and Uber notifications without false positives.
+```
+Ai _spam detector/
+├── android_app/                # Native Android Mobile Application
+│   ├── app/
+│   │   ├── src/main/AndroidManifest.xml   # SMS permissions & receiver
+│   │   └── src/main/java/.../
+│   │       ├── MainActivity.kt            # Mobile UI & Scanner
+│   │       ├── SmsReceiver.kt             # Intercepts every incoming SMS
+│   │       ├── SpamApiClient.kt           # Connects to Render AI backend
+│   │       ├── NotificationHelper.kt      # System alert manager
+│   │       └── DetectionAdapter.kt        # Intercepted SMS log adapter
+│   └── README.md                          # Android build & install guide
+│
+├── src/                        # 5-Layer AI Detection Core
+│   ├── dataset.py              # Curated multi-channel training corpus
+│   ├── tokenizer.py            # Subword tokenizer & 64D semantic embeddings
+│   ├── models.py               # Unified Deep Neural Network classifier
+│   ├── decision_engine.py      # Tone scoring & Bayesian probability calibration
+│   ├── reason_mapper.py        # Explainability & in-text highlight generator
+│   └── pipeline.py             # 5-Layer Pipeline Orchestrator
+│
+├── templates/                  # PC Web Dashboard HTML
+├── static/                     # Dark glassmorphic CSS & JS
+├── app.py                      # Flask REST API server (Cloud & Local)
+├── test_pipeline.py            # Automated Unit & Integration test suite
+├── run_app.bat                 # 1-Click PC Launcher
+└── DEPLOYMENT_GUIDE.md         # Cloud deployment instructions
+```
 
 ---
 
-## Quick Start Guide
+## How to Use
 
-### 1. Launch the App
-Double-click `run_app.bat` or run:
-```powershell
-.\.python_env\python.exe app.py
-```
-Open your browser at:
-```
-http://127.0.0.1:5000
-```
+### 1. On PC / Laptop
+- Double-click `run_app.bat` or run:
+  ```powershell
+  .\.python_env\python.exe app.py
+  ```
+- Open browser at **`http://localhost:5000`**.
 
-### 2. Run Automated Tests
-```powershell
-.\.python_env\python.exe test_pipeline.py
-```
-All 14 unit and integration tests run in under 0.25 seconds with 100% pass rate.
+### 2. On Mobile Phone (Android App)
+- Open the `android_app/` folder in Android Studio.
+- Click **Build $\to$ Build APK(s)** and install `app-debug.apk` on your phone.
+- Grant SMS permission: every incoming text message will now be automatically intercepted, analyzed by AI, and flagged if it is spam or phishing!
