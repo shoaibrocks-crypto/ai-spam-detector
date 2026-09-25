@@ -15,9 +15,6 @@ import android.provider.Telephony
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainActivity : Activity() {
 
@@ -80,7 +77,7 @@ class MainActivity : Activity() {
             etManualScan.setText("URGENT: Your Chase Bank account has been locked due to suspicious activity. Verify immediately at http://chase-auth.xyz or account will be closed.")
         }
 
-        // Run Manual Scan
+        // Run Manual Scan using standard Thread & runOnUiThread (No kotlinx.coroutines needed!)
         btnRunScan.setOnClickListener {
             val text = etManualScan.text.toString().trim()
             if (text.isEmpty()) {
@@ -92,23 +89,25 @@ class MainActivity : Activity() {
             layoutScanResult.visibility = View.GONE
             btnRunScan.isEnabled = false
 
-            CoroutineScope(Dispatchers.Main).launch {
+            Thread {
                 val result = SpamApiClient.analyzeMessage(this@MainActivity, text)
-                pbScanning.visibility = View.GONE
-                btnRunScan.isEnabled = true
-                layoutScanResult.visibility = View.VISIBLE
+                runOnUiThread {
+                    pbScanning.visibility = View.GONE
+                    btnRunScan.isEnabled = true
+                    layoutScanResult.visibility = View.VISIBLE
 
-                tvManualVerdict.text = "[${result.verdict}]"
-                if (result.verdict == "SPAM") {
-                    tvManualVerdict.setBackgroundColor(Color.parseColor("#EF4444"))
-                } else {
-                    tvManualVerdict.setBackgroundColor(Color.parseColor("#10B981"))
+                    tvManualVerdict.text = "[${result.verdict}]"
+                    if (result.verdict == "SPAM") {
+                        tvManualVerdict.setBackgroundColor(Color.parseColor("#EF4444"))
+                    } else {
+                        tvManualVerdict.setBackgroundColor(Color.parseColor("#10B981"))
+                    }
+
+                    tvManualConfidence.text = "${result.confidence} Confidence • ${result.riskLevel}"
+                    tvManualHeadline.text = result.headline
+                    tvManualRec.text = "Recommendation: ${result.recommendation}"
                 }
-
-                tvManualConfidence.text = "${result.confidence} Confidence • ${result.riskLevel}"
-                tvManualHeadline.text = result.headline
-                tvManualRec.text = "Recommendation: ${result.recommendation}"
-            }
+            }.start()
         }
 
         // Set as Default SMS App Button
