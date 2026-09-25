@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.antigravity.aispamdetector">
 
-    <!-- Permissions for incoming SMS interception and network AI analysis -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,13 +9,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Pure Android OS system resources: zero project resource dependency -->
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@android:drawable/sym_def_app_icon"
         android:label="AI Spam Detector"
-        android:roundIcon="@drawable/ic_launcher"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AiSpamDetector"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
         android:usesCleartextTraffic="true">
 
         <activity
@@ -29,7 +27,6 @@
             </intent-filter>
         </activity>
 
-        <!-- BroadcastReceiver listening to every incoming SMS message -->
         <receiver
             android:name=".SmsReceiver"
             android:exported="true"
