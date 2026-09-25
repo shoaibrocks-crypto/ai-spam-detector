@@ -5,9 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class SmsReceiver : BroadcastReceiver() {
     companion object {
@@ -28,20 +25,18 @@ class SmsReceiver : BroadcastReceiver() {
 
             Log.d("SmsReceiver", "Intercepted incoming SMS from $sender: $fullMessage")
 
-            // Run AI 5-Layer Spam Analysis asynchronously
             val pendingResult = goAsync()
-            CoroutineScope(Dispatchers.IO).launch {
+            // Pure standard Java Thread (No kotlinx.coroutines needed!)
+            Thread {
                 try {
                     val result = SpamApiClient.analyzeMessage(context, fullMessage)
 
-                    // Dispatch Heads-Up Notification based on verdict
                     if (result.verdict == "SPAM") {
                         NotificationHelper.showSpamAlert(context, sender, result)
                     } else {
                         NotificationHelper.showSafeNotification(context, sender, result)
                     }
 
-                    // Broadcast to MainActivity if active so UI updates in real-time
                     val updateIntent = Intent(ACTION_NEW_DETECTION).apply {
                         putExtra("sender", sender)
                         putExtra("text", fullMessage)
@@ -57,7 +52,7 @@ class SmsReceiver : BroadcastReceiver() {
                 } finally {
                     pendingResult.finish()
                 }
-            }
+            }.start()
         }
     }
 }
