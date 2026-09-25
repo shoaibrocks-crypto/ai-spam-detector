@@ -1,6 +1,5 @@
 package com.antigravity.aispamdetector
 
-import com.antigravity.aispamdetector.R
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -11,15 +10,15 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.provider.Telephony
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -33,13 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvManualConfidence: TextView
     private lateinit var tvManualHeadline: TextView
     private lateinit var tvManualRec: TextView
-    private lateinit var rvHistory: RecyclerView
+    private lateinit var llHistoryContainer: LinearLayout
     private lateinit var tvEmptyHistory: TextView
     private lateinit var btnDefaultApp: Button
     private lateinit var btnSettings: ImageButton
-
-    private val detectionList = mutableListOf<DetectionItem>()
-    private lateinit var adapter: DetectionAdapter
 
     private val updateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -50,10 +46,7 @@ class MainActivity : AppCompatActivity() {
                 val confidence = intent.getStringExtra("confidence") ?: "90.0%"
                 val headline = intent.getStringExtra("headline") ?: "Analyzed"
 
-                val item = DetectionItem(sender, text, verdict, confidence, headline)
-                adapter.addItem(item)
-                tvEmptyHistory.visibility = View.GONE
-                rvHistory.visibility = View.VISIBLE
+                addDetectionCard(sender, text, verdict, confidence, headline)
             }
         }
     }
@@ -63,7 +56,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initViews()
-        setupRecyclerView()
         checkPermissions()
         setupListeners()
     }
@@ -78,16 +70,10 @@ class MainActivity : AppCompatActivity() {
         tvManualConfidence = findViewById(R.id.tvManualConfidence)
         tvManualHeadline = findViewById(R.id.tvManualHeadline)
         tvManualRec = findViewById(R.id.tvManualRec)
-        rvHistory = findViewById(R.id.rvHistory)
+        llHistoryContainer = findViewById(R.id.llHistoryContainer)
         tvEmptyHistory = findViewById(R.id.tvEmptyHistory)
         btnDefaultApp = findViewById(R.id.btnDefaultApp)
         btnSettings = findViewById(R.id.btnSettings)
-    }
-
-    private fun setupRecyclerView() {
-        adapter = DetectionAdapter(detectionList)
-        rvHistory.layoutManager = LinearLayoutManager(this)
-        rvHistory.adapter = adapter
     }
 
     private fun setupListeners() {
@@ -108,7 +94,7 @@ class MainActivity : AppCompatActivity() {
             layoutScanResult.visibility = View.GONE
             btnRunScan.isEnabled = false
 
-            lifecycleScope.launch {
+            CoroutineScope(Dispatchers.Main).launch {
                 val result = SpamApiClient.analyzeMessage(this@MainActivity, text)
                 pbScanning.visibility = View.GONE
                 btnRunScan.isEnabled = true
@@ -159,6 +145,32 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", null)
                 .show()
         }
+    }
+
+    private fun addDetectionCard(sender: String, text: String, verdict: String, confidence: String, headline: String) {
+        tvEmptyHistory.visibility = View.GONE
+        llHistoryContainer.visibility = View.VISIBLE
+
+        val cardView = LayoutInflater.from(this).inflate(R.layout.item_detection_log, llHistoryContainer, false)
+        val tvSender = cardView.findViewById<TextView>(R.id.tvSender)
+        val tvVerdictBadge = cardView.findViewById<TextView>(R.id.tvVerdictBadge)
+        val tvHeadline = cardView.findViewById<TextView>(R.id.tvHeadline)
+        val tvMessageSnippet = cardView.findViewById<TextView>(R.id.tvMessageSnippet)
+        val tvConfidence = cardView.findViewById<TextView>(R.id.tvConfidence)
+
+        tvSender.text = "From: $sender"
+        tvVerdictBadge.text = "[$verdict]"
+        if (verdict == "SPAM") {
+            tvVerdictBadge.setBackgroundColor(Color.parseColor("#EF4444"))
+        } else {
+            tvVerdictBadge.setBackgroundColor(Color.parseColor("#10B981"))
+        }
+
+        tvHeadline.text = headline
+        tvMessageSnippet.text = text
+        tvConfidence.text = "Confidence: $confidence"
+
+        llHistoryContainer.addView(cardView, 0)
     }
 
     private fun checkPermissions() {
