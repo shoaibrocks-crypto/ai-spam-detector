@@ -17,35 +17,40 @@ class DecisionEngine:
         # Psychological Tone Patterns
         self.urgency_patterns = [
             r'\b(urgent|immediately|act now|hurry|final notice|within \d+ hours?|limited time|last chance)\b',
-            r'\b(immediate action|account (will be|has been) (locked|suspended|terminated|deactivated))\b'
+            r'\b(immediate action|account (will be|has been) (locked|suspended|terminated|deactivated))\b',
+            r'\b(turant|aaj raat|jaldi|tatkal|aaj hi|kat diya jayega|disconnect tonight)\b'
         ]
         self.fear_coercion_patterns = [
             r'\b(arrest|warrant|lawsuit|penalty|legal action|unauthorized (sign-in|access|activity)|breach)\b',
-            r'\b(compromised|safeguard your data|prevent loss of funds)\b'
+            r'\b(compromised|safeguard your data|prevent loss of funds)\b',
+            r'\b(bijli|power connection.*kat|police complaint|arrest warrant|fir darj|aadhaar.*block|sim.*block|pan.*deactivate)\b'
         ]
         self.reward_greed_patterns = [
             r'\b(congratulations|selected as (a|the) winner|grand prize|lottery|millionaire|claim your prize)\b',
             r'\b(free (bitcoin|crypto|gift card|entry)|guaranteed returns|make \$\d+|earn \$\d+|earn rs\.?\s*\d+)\b',
             r'\b(pending refund.*income tax|pre-approved for|crypto draw|crypto bonus|airdrop)\b',
-            r'\b(\d+%\s*returns|investment opportunity|found your number.*directory)\b'
+            r'\b(\d+%\s*returns|investment opportunity|found your number.*directory)\b',
+            r'\b(badhai ho|kbc lucky draw|lottery laga|ghar baithe kamaye|paise kamaye|daily payout|typing work)\b'
         ]
         
         # Deceptive Structural Patterns
         self.credential_harvesting_patterns = [
             r'\b(verify (your )?(identity|account|password|card|billing)|log ?in (now|here)|update (your )?password)\b',
-            r'\b(security alert|online access|unverified login|billing card)\b'
+            r'\b(security alert|online access|unverified login|billing card|update pan card|yono account)\b'
         ]
         self.suspicious_urls_patterns = [
-            r'https?://[^\s/$.?#].[^\s]*\.(xyz|cc|top|live|vip|biz|info|club)\b',
-            r'https?://bit\.ly/\S+|https?://tinyurl\.com/\S+',
-            r'https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' # IP address as domain
+            r'https?://[^\s/$.?#].[^\s]*\.(xyz|cc|top|live|vip|biz|info|club|icu|work|click|buzz|rest|tk|ml|ga)\b',
+            r'https?://(?:bit\.ly|tinyurl\.com|t\.co|is\.gd|buff\.ly|ow\.ly)/\S+',
+            r'https?://(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:/\S*)?', # IP address as domain
+            r'https?://[^\s/]*(?:paypal|chase|sbi|hdfc|icici|yono|netflix|amazon|apple-id|google-security)[^\s/]*\.(?!com\b|org\b|in\b|co\.in\b)[a-z0-9.-]+' # Brand spoofing
         ]
         self.commercial_promo_patterns = [
             r'\b(\d+%\s*discount|special\s+discount|pharmacy|meds|pharmaceuticals|cheap\s+pills|online\s+pharmacy|hot\s+singles)\b',
             r'\b(free\s+worldwide\s+shipping|exclusive\s+deal|buy\s+direct)\b'
         ]
         self.job_scam_patterns = [
-            r'\b(shortlisted for|work from home|part[- ]time job|no experience needed|contact hr on whatsapp|earn \$\d+/hour|daily income)\b'
+            r'\b(shortlisted for|work from home|part[- ]time job|no experience needed|contact hr on whatsapp|earn \$\d+/hour|daily income)\b',
+            r'\b(youtube video like.*paise|telegram group.*earning|contact hr madam)\b'
         ]
         self.delivery_scam_patterns = [
             r'\b(package.*held|parcel.*held|redelivery fee|invalid house number|customs fee|package delivery failed)\b'
@@ -58,7 +63,8 @@ class DecisionEngine:
         ]
         self.legitimate_transaction_patterns = [
             r'\b(credited to your account|debited from a/c|upi ref|balance:?|valid for \d+ minutes?|do not share (this )?otp)\b',
-            r'\b(has shipped|picked up by the delivery partner|appointment with dr\.|uber ride with)\b'
+            r'\b(has shipped|picked up by the delivery partner|appointment with dr\.|uber ride with)\b',
+            r'\b(pnr \d+|railway|coach \w\d+|happy journey|electricity bill.*received|data quota exhausted)\b'
         ]
 
     def evaluate_tone_and_intent(self, text: str) -> Dict[str, Any]:
@@ -221,10 +227,11 @@ class DecisionEngine:
             "is_legitimate_tx": is_legitimate_tx
         }
 
-    def calibrate_decision(self, model_p_spam: float, behavioral_data: Dict[str, Any]) -> Dict[str, Any]:
+    def calibrate_decision(self, model_p_spam: float, behavioral_data: Dict[str, Any], sensitivity: str = "balanced") -> Dict[str, Any]:
         """
         Blends Layer 3 model probabilities with Layer 4 behavioral & pattern evaluation.
         Produces final calibrated class probabilities and risk assessment.
+        Supports sensitivity tuning: 'aggressive' (0.40), 'balanced' (0.50), 'relaxed' (0.65).
         """
         risk_score = behavioral_data["total_risk_score"]
         signals = behavioral_data.get("signals", [])
@@ -237,9 +244,12 @@ class DecisionEngine:
         if is_legitimate_tx and not has_suspicious_url and len(malicious_signals) == 0:
             # Verified safe banking / delivery / OTP alert
             calibrated_p_spam = min(0.15, model_p_spam * 0.25)
-        elif len(malicious_signals) >= 2:
-            # Strong multi-signal pattern elevates spam probability
-            calibrated_p_spam = 1.0 - ((1.0 - model_p_spam) * (0.35 ** len(malicious_signals)))
+        elif len(malicious_signals) >= 2 or has_suspicious_url:
+            # Strong multi-signal pattern or malicious URL elevates spam probability
+            boost = 0.25 if has_suspicious_url else 0.35
+            calibrated_p_spam = 1.0 - ((1.0 - model_p_spam) * (boost ** max(1, len(malicious_signals))))
+            if has_suspicious_url:
+                calibrated_p_spam = max(calibrated_p_spam, 0.88)
         elif len(malicious_signals) == 1:
             if model_p_spam < 0.25:
                 calibrated_p_spam = min(0.38, model_p_spam * 1.4)
@@ -253,14 +263,20 @@ class DecisionEngine:
         calibrated_p_spam = max(0.01, min(0.99, calibrated_p_spam))
         calibrated_p_ham = 1.0 - calibrated_p_spam
 
-        # Classification verdict
-        verdict = "SPAM" if calibrated_p_spam >= 0.50 else "HAM"
+        # Classification verdict based on sensitivity
+        thresh = 0.50
+        if sensitivity == "aggressive":
+            thresh = 0.40
+        elif sensitivity == "relaxed":
+            thresh = 0.65
+
+        verdict = "SPAM" if calibrated_p_spam >= thresh else "HAM"
 
         # Risk level determination
         if calibrated_p_spam >= 0.85:
             risk_level = "CRITICAL RISK"
             badge_color = "danger"
-        elif calibrated_p_spam >= 0.50:
+        elif calibrated_p_spam >= thresh:
             risk_level = "MODERATE RISK"
             badge_color = "warning"
         elif calibrated_p_spam >= 0.20:
