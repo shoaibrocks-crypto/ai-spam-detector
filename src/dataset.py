@@ -60,6 +60,18 @@ TRAINING_DATA = [
     {"text": "Dear Candidate, You are shortlisted for a work from home job. Salary Rs.25000-50000/month. Contact HR on WhatsApp: +91-9876543210", "label": "spam"},
     {"text": "Amazon is hiring! Earn $35/hour from home. No experience needed. Apply now at http://amazon-jobs-hiring.top", "label": "spam"},
 
+    # --- Hinglish & Regional Scams ---
+    {"text": "Badhai ho! Aapka number KBC Lucky Draw mein 25 Lakh jeeta hai. Prize claim karne ke liye WhatsApp karein +91-9988776655 par ya visit karein http://kbc-lottery-claim.xyz", "label": "spam"},
+    {"text": "Aapka lottery laga hai 50 Lakh ka. Manager Rana Pratap Singh se call par baat karein aur processing fee deposit karein: http://lottery-payout.live", "label": "spam"},
+    {"text": "Dear Customer, Aapka electricity power connection kat diya jayega aaj raat 9:30 baje kyunki bill update nahi hua. Turant call karein electricity officer ko: 9876543210", "label": "spam"},
+    {"text": "Electricity Alert: Your power will be disconnected tonight at 10 PM. Please update bill immediately call officer on 9812345678 or visit http://bijli-bill-pay.xyz", "label": "spam"},
+    {"text": "Ghar baithe kamaye daily 2000 se 5000 rupees! YouTube video like karke paise kamaye. No investment needed. Contact HR madam on WhatsApp: http://wa.me/919876543210", "label": "spam"},
+    {"text": "Part-time typing work available for students and house wives. Daily payout Rs 1500 directly in bank. Join telegram group: https://t.me/fake_earning_group", "label": "spam"},
+
+    # --- Deep Phishing & Obfuscated URLs ---
+    {"text": "CRITICAL: Suspicious transfer detected on your account. To cancel transfer and secure funds visit http://192.168.1.50/secure-auth-cancel or call support.", "label": "spam"},
+    {"text": "SBI KYC Expired: Dear user your SBI YONO account will be blocked today. Click http://sbi-kyc-update-yono.top to update pan card now.", "label": "spam"},
+
     # ===================== HAM (LEGITIMATE) MESSAGES =====================
 
     # --- Work & Office Emails ---
@@ -108,6 +120,13 @@ TRAINING_DATA = [
     {"text": "LinkedIn: Priya Sharma viewed your profile. See what they're up to.", "label": "ham"},
     {"text": "YouTube: New video from your subscription - 'Building AI Projects from Scratch' by Tech With Tim.", "label": "ham"},
     {"text": "Weather Alert: Heavy rainfall expected in your area tomorrow. Carry an umbrella and stay safe.", "label": "ham"},
+
+    # --- Regional & Hinglish Legitimate Messages ---
+    {"text": "IRCTC: PNR 4829103847 confirmed. Train 12951 Mumbai Rajdhani, Coach B3 Berth 42. Happy Journey!", "label": "ham"},
+    {"text": "Bhai shaam ko milte hain chai pe. Mere ghar ke paas aaja 6 baje.", "label": "ham"},
+    {"text": "Papa ne bola hai market se sabzi le aana aate waqt. Phone uthao.", "label": "ham"},
+    {"text": "Dear customer, your electricity bill of Rs. 1420 for consumer no. 10928374 has been received. Thank you - Tata Power.", "label": "ham"},
+    {"text": "Jio: 100% of daily data quota exhausted for your Jio number 9876543210. Recharge with 1.5GB pack to continue browsing.", "label": "ham"},
 ]
 
 # Preset demos for UI
@@ -123,6 +142,16 @@ DEMO_PRESETS = [
         "text": "CONGRATULATIONS! You have won 1.5 Bitcoin ($95,000 USD) in the 2026 International Crypto Draw! Reply CLAIM or visit http://crypto-win-payout.live to receive funds within 24 hours."
     },
     {
+        "title": "Hinglish KBC Scam",
+        "icon": "🇮🇳",
+        "text": "Badhai ho! Aapka number KBC Lucky Draw mein 25 Lakh jeeta hai. Prize claim karne ke liye WhatsApp karein +91-9988776655 par ya visit karein http://kbc-lottery-claim.xyz"
+    },
+    {
+        "title": "Electricity Cut Scam",
+        "icon": "⚡",
+        "text": "Dear Customer, Aapka electricity power connection kat diya jayega aaj raat 9:30 baje kyunki bill update nahi hua. Turant call karein electricity officer ko: 9876543210"
+    },
+    {
         "title": "Delivery Scam",
         "icon": "📦",
         "text": "USPS Alert: Package tracking ID #US89218 is held at distribution depot due to invalid house number. Pay $2.49 redelivery fee now at http://usps-redelivery-notice.xyz"
@@ -131,6 +160,11 @@ DEMO_PRESETS = [
         "title": "Job Scam",
         "icon": "💼",
         "text": "Dear Candidate, You are shortlisted for Amazon work from home job. Salary $3000-$5000/month. No experience needed. Contact HR on WhatsApp: +1-800-555-FAKE"
+    },
+    {
+        "title": "Fake Bank KYC (IP)",
+        "icon": "🏦",
+        "text": "SBI KYC Expired: Dear user your SBI YONO account will be blocked today. Click http://sbi-kyc-update-yono.top to update pan card now or verify at http://192.168.1.50/sbi-auth"
     },
     {
         "title": "Work Email",
