@@ -44,8 +44,8 @@ class SpamDetectorPipeline:
             y_list.append(1 if item["label"] == "spam" else 0)
         self.engine.train(np.array(X_list), np.array(y_list), epochs=200, lr=0.08)
 
-    def analyze(self, raw_text: str, *args, **kwargs) -> Dict[str, Any]:
-        """Execute full 5-layer pipeline on input text."""
+    def analyze(self, raw_text: str, sensitivity: str = "balanced", *args, **kwargs) -> Dict[str, Any]:
+        """Execute full 5-layer pipeline on input text with optional sensitivity."""
         
         # LAYER 1: Input
         cleaned_text = preprocess_text(raw_text)
@@ -54,7 +54,8 @@ class SpamDetectorPipeline:
             "raw_text": raw_text,
             "cleaned_text": cleaned_text,
             "char_count": len(raw_text),
-            "word_count": len(raw_text.split())
+            "word_count": len(raw_text.split()),
+            "sensitivity": sensitivity
         }
 
         # LAYER 2: Tokenization & Embedding
@@ -87,7 +88,7 @@ class SpamDetectorPipeline:
 
         # LAYER 4: Decision Engine
         behavioral_data = self.decision_engine.evaluate_tone_and_intent(raw_text)
-        decision_result = self.decision_engine.calibrate_decision(p_spam, behavioral_data)
+        decision_result = self.decision_engine.calibrate_decision(p_spam, behavioral_data, sensitivity=sensitivity)
         layer4 = {
             "name": "Decision Engine",
             "intent_scores": behavioral_data["scores"],
@@ -95,7 +96,8 @@ class SpamDetectorPipeline:
             "signals": behavioral_data["signals"],
             "calibrated": decision_result["calibrated_probabilities"],
             "calibrated_probabilities": decision_result["calibrated_probabilities"],
-            "risk_level": decision_result["risk_level"]
+            "risk_level": decision_result["risk_level"],
+            "sensitivity": sensitivity
         }
 
         # LAYER 5: Output
