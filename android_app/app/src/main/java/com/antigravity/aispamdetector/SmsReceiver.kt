@@ -25,11 +25,34 @@ class SmsReceiver : BroadcastReceiver() {
 
             Log.d("SmsReceiver", "Intercepted incoming SMS from $sender: $fullMessage")
 
+            // Whitelist Check
+            val whitelistManager = WhitelistManager(context)
+            if (whitelistManager.isWhitelisted(sender)) {
+                Log.d("SmsReceiver", "Sender $sender is whitelisted. Skipping.")
+                return
+            }
+
             val pendingResult = goAsync()
             // Pure standard Java Thread (No kotlinx.coroutines needed!)
             Thread {
                 try {
                     val result = SpamApiClient.analyzeMessage(context, fullMessage)
+
+                    // Save to persistent history
+                    val historyManager = HistoryManager(context)
+                    historyManager.addRecord(
+                        HistoryRecord(
+                            id = System.currentTimeMillis().toString(),
+                            timestamp = System.currentTimeMillis(),
+                            sender = sender,
+                            source = "SMS",
+                            text = fullMessage,
+                            verdict = result.verdict,
+                            confidence = result.confidence,
+                            headline = result.headline,
+                            riskLevel = result.riskLevel
+                        )
+                    )
 
                     if (result.verdict == "SPAM") {
                         NotificationHelper.showSpamAlert(context, sender, result)
@@ -39,10 +62,12 @@ class SmsReceiver : BroadcastReceiver() {
 
                     val updateIntent = Intent(ACTION_NEW_DETECTION).apply {
                         putExtra("sender", sender)
+                        putExtra("source", "SMS")
                         putExtra("text", fullMessage)
                         putExtra("verdict", result.verdict)
                         putExtra("confidence", result.confidence)
                         putExtra("headline", result.headline)
+                        putExtra("riskLevel", result.riskLevel)
                         setPackage(context.packageName)
                     }
                     context.sendBroadcast(updateIntent)
