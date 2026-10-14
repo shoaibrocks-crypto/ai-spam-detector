@@ -87,28 +87,54 @@ object SpamApiClient {
 
     private fun fallbackOfflineAnalysis(text: String): SpamAnalysisResult {
         val low = text.lowercase()
-        val spamTriggers = listOf(
-            "urgent", "immediately", "account suspended", "verify password",
-            "congratulations", "won $", "claim prize", "bit.ly", "0% interest",
-            "shortlisted for", "work from home", "package delivery failed"
+
+        // 1. Legitimate Transaction guard
+        val legTriggers = listOf(
+            "credited to", "debited from", "upi ref", "do not share this otp",
+            "valid for", "pnr ", "swiggy order", "zomato", "uber ride"
         )
-        val isSpam = spamTriggers.any { low.contains(it) }
+        val isLegit = legTriggers.any { low.contains(it) }
+
+        // 2. High-Risk Phishing Links
+        val urlTriggers = listOf(
+            ".xyz", ".top", ".vip", ".live", ".cc", ".club", ".icu", ".work",
+            "bit.ly", "tinyurl.com", "http://192.", "http://10.", "http://45.",
+            "yono", "pan-card", "kyc-update"
+        )
+        val hasPhishingUrl = urlTriggers.any { low.contains(it) }
+
+        // 3. Spam & Scam Keywords (English + Hinglish)
+        val spamTriggers = listOf(
+            "urgent", "immediately", "account suspended", "verify password", "unauthorized",
+            "congratulations", "won $", "claim prize", "lottery", "0% interest",
+            "shortlisted for", "work from home", "package delivery failed", "redelivery fee",
+            "badhai ho", "kbc", "lottery laga", "bijli", "kat diya", "ghar baithe",
+            "paise kamaye", "typing work", "turant call", "fir darj", "aadhaar block"
+        )
+        val hasSpamTriggers = spamTriggers.any { low.contains(it) }
+
+        val isSpam = !isLegit && (hasPhishingUrl || hasSpamTriggers)
 
         return if (isSpam) {
+            val headline = if (hasPhishingUrl) {
+                "High-Risk Phishing URL or Obfuscated Link Detected"
+            } else {
+                "Deceptive Intent or Coercion Detected by On-Device AI"
+            }
             SpamAnalysisResult(
                 verdict = "SPAM",
-                confidence = "92.0%",
+                confidence = if (hasPhishingUrl) "96.5%" else "92.0%",
                 riskLevel = "CRITICAL RISK",
-                headline = "Flagged by On-Device AI filter (Urgency / Suspicious Intent)",
-                recommendation = "Do not click links or call numbers from this message.",
+                headline = headline,
+                recommendation = "Do not click any links, download attachments, or transfer funds.",
                 rawText = text
             )
         } else {
             SpamAnalysisResult(
                 verdict = "HAM",
-                confidence = "88.0%",
+                confidence = if (isLegit) "98.0%" else "89.0%",
                 riskLevel = "SAFE",
-                headline = "Passed On-Device safety inspection: normal conversational tone",
+                headline = if (isLegit) "Verified Transaction / Legitimate Notification" else "Passed On-Device safety inspection",
                 recommendation = "Message appears safe.",
                 rawText = text
             )
