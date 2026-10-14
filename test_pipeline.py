@@ -121,6 +121,24 @@ class TestSpamDetector5Layers(unittest.TestCase):
         res = self.pipeline.analyze(msg)
         self.assertEqual(res["verdict"], "SPAM")
 
+    def test_hinglish_kbc_scam(self):
+        msg = "Badhai ho! Aapka number KBC Lucky Draw mein 25 Lakh jeeta hai. Prize claim karne ke liye WhatsApp karein +91-9988776655"
+        res = self.pipeline.analyze(msg)
+        self.assertEqual(res["verdict"], "SPAM")
+
+    def test_phishing_ip_detection(self):
+        msg = "CRITICAL: Suspicious transfer detected on your account. To cancel visit http://192.168.1.50/secure-auth or call support."
+        res = self.pipeline.analyze(msg)
+        self.assertEqual(res["verdict"], "SPAM")
+        self.assertEqual(res["risk_level"], "CRITICAL RISK")
+
+    def test_sensitivity_modes(self):
+        msg = "Verify your password now"
+        res_agg = self.pipeline.analyze(msg, sensitivity="aggressive")
+        res_rel = self.pipeline.analyze(msg, sensitivity="relaxed")
+        self.assertIn(res_agg["verdict"], ["SPAM", "HAM"])
+        self.assertIn(res_rel["verdict"], ["SPAM", "HAM"])
+
     def test_bank_otp_ham(self):
         msg = "Your OTP for SBI Net Banking login is 847291. Valid for 3 minutes. Do not share with anyone."
         res = self.pipeline.analyze(msg)
