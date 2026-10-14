@@ -103,6 +103,22 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPresets();
 
   // =========================================================================
+  // Sensitivity Selector
+  // =========================================================================
+  let currentSensitivity = 'balanced';
+  const sensPills = document.querySelectorAll('.sens-pill');
+  sensPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      sensPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentSensitivity = pill.getAttribute('data-sens') || 'balanced';
+      if (msgInput.value.trim()) {
+        runScan();
+      }
+    });
+  });
+
+  // =========================================================================
   // Scan Execution
   // =========================================================================
   btnScan.addEventListener('click', runScan);
@@ -123,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text })
+        body: JSON.stringify({ text: text, sensitivity: currentSensitivity })
       });
 
       const resData = await response.json();
