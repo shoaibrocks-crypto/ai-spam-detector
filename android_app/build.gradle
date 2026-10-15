@@ -15,6 +15,7 @@ allprojects {
         google()
         mavenCentral()
     }
+    buildDir = new File("C:/Users/lenovo/AppData/Local/Temp/ai_spam_build", project.name)
 }
 
 tasks.register('clean', Delete) {
