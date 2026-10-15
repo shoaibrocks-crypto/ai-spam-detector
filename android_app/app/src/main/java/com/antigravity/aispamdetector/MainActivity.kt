@@ -1033,9 +1033,6 @@ class MainActivity : Activity() {
 
     private fun checkPermissions() {
         val permissions = mutableListOf<String>()
-        if (checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-            permissions.add(Manifest.permission.RECEIVE_SMS)
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 permissions.add(Manifest.permission.POST_NOTIFICATIONS)
