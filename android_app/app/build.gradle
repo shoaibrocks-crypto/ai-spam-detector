@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.antigravity.aispamdetector'
-    compileSdk 36
+    compileSdk 34
     buildToolsVersion "36.1.0"
 
     defaultConfig {
