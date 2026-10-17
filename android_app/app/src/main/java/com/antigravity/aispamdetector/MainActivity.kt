@@ -86,23 +86,40 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        historyManager = HistoryManager(this)
-        whitelistManager = WhitelistManager(this)
+        try {
+            historyManager = HistoryManager(this)
+            whitelistManager = WhitelistManager(this)
 
-        buildProgrammaticUI()
-        checkPermissions()
+            buildProgrammaticUI()
+            checkPermissions()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Startup: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        val filter = IntentFilter(SmsReceiver.ACTION_NEW_DETECTION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(updateReceiver, filter, RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(updateReceiver, filter)
+        try {
+            val filter = IntentFilter(SmsReceiver.ACTION_NEW_DETECTION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(updateReceiver, filter, RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(updateReceiver, filter)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        updateNotifAccessStatus()
-        refreshHistoryList()
+        try {
+            updateNotifAccessStatus()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            refreshHistoryList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onPause() {
@@ -595,7 +612,6 @@ class MainActivity : Activity() {
         filterBar.addView(btnFiltSpam)
         filterBar.addView(btnFiltSafe)
         layout.addView(filterBar)
-        updateFiltUi("ALL")
 
         tvEmptyHistory = TextView(this).apply {
             text = "No messages intercepted yet.\nIncoming SMS, WhatsApp, and Telegram messages will automatically appear here."
@@ -611,10 +627,13 @@ class MainActivity : Activity() {
         }
         layout.addView(llHistoryList)
 
+        updateFiltUi("ALL")
+
         return layout
     }
 
     private fun refreshHistoryList() {
+        if (!::llHistoryList.isInitialized || !::tvEmptyHistory.isInitialized) return
         llHistoryList.removeAllViews()
         val records = historyManager.getRecords()
 
@@ -878,6 +897,7 @@ class MainActivity : Activity() {
     }
 
     private fun updateNotifAccessStatus() {
+        if (!::tvNotifAccessStatus.isInitialized) return
         val enabled = isNotificationServiceEnabled()
         if (enabled) {
             tvNotifAccessStatus.text = "Status: GRANTED (WhatsApp & Telegram are active)"
@@ -889,11 +909,16 @@ class MainActivity : Activity() {
     }
 
     private fun isNotificationServiceEnabled(): Boolean {
-        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
-        return flat != null && flat.contains(packageName)
+        return try {
+            val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+            flat != null && flat.contains(packageName)
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun refreshWhitelistChips() {
+        if (!::llWhitelistChips.isInitialized) return
         llWhitelistChips.removeAllViews()
         val senders = whitelistManager.getWhitelistedSenders()
         for (s in senders) {
