@@ -33,7 +33,7 @@ object SpamApiClient {
     }
 
     // Pure Java/Android HttpURLConnection (100% built-in, zero external libraries)
-    fun analyzeMessage(context: Context, text: String): SpamAnalysisResult {
+    fun analyzeMessage(context: Context, text: String, sensitivity: String = "balanced"): SpamAnalysisResult {
         val baseUrl = getBackendUrl(context)
         val endpoint = "$baseUrl/api/analyze"
 
@@ -44,12 +44,13 @@ object SpamApiClient {
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             connection.setRequestProperty("Accept", "application/json")
-            connection.connectTimeout = 8000
-            connection.readTimeout = 12000
+            connection.connectTimeout = 3500
+            connection.readTimeout = 5000
             connection.doOutput = true
 
             val jsonPayload = JSONObject().apply {
                 put("text", text)
+                put("sensitivity", sensitivity)
             }.toString()
 
             OutputStreamWriter(connection.outputStream, "UTF-8").use { writer ->
