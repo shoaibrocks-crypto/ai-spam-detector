@@ -964,7 +964,7 @@ class MainActivity : Activity() {
         layoutScanResult.visibility = View.GONE
 
         Thread {
-            val result = SpamApiClient.analyzeMessage(this, text)
+            val result = SpamApiClient.analyzeMessage(this, text, currentSensitivity)
             runOnUiThread {
                 btnRunScan.isEnabled = true
                 pbScanning.visibility = View.GONE
